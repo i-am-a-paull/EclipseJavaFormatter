@@ -1,5 +1,5 @@
-import sublime, sublime_plugin, time
-from subprocess import check_call
+import sublime, sublime_plugin, time, sys
+from subprocess import Popen, PIPE
 
 SETTINGS_NAME = 'EclipseJavaFormatter'
 SETTINGS = '%s.sublime-settings' % SETTINGS_NAME
@@ -22,7 +22,10 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     #self.__printLineEndings(line_endings)
 
     ''' do external call to eclipse formatter '''
-    output = check_call(self.__assembleCommand())
+    child = Popen(self.__assembleCommand(), stdout=PIPE, stderr=PIPE)
+    print child.communicate()[1]
+
+    #output = check_call(self.__assembleCommand())
 
     ''' reload formatted file '''
     view.run_command('revert')
