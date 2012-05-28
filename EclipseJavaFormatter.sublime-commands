@@ -1,0 +1,6 @@
+[
+  {
+    "caption": "Eclipse: Format Java",
+    "command": "eclipse_format_java"
+  }
+]

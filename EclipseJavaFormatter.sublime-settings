@@ -1,0 +1,16 @@
+{
+
+  // To use this default setting, you must have your
+  // eclipse install directory on your path
+  "eclipse_command": "eclipse",
+
+  // If you like to be annoyed, set this to false.
+  "no_splash": true,
+
+  // This really doesn't matter right now.
+  "verbose": false,
+
+  //You will definitely want to set this one accordingly
+  "config_file": "/Users/phildopus/Development/config/eclipse/org.eclipse.jdt.core.prefs"
+
+}
