@@ -1,12 +1,13 @@
-import sublime, sublime_plugin, time, sys
-from subprocess import Popen, PIPE
+import sublime, sublime_plugin
+from subprocess import Popen, PIPE, STDOUT
 
 SETTINGS_NAME = 'EclipseJavaFormatter'
-SETTINGS = '%s.sublime-settings' % SETTINGS_NAME
+SETTINGS_FILE_NAME = '%s.sublime-settings' % SETTINGS_NAME
 KEY_ECLIPSE_COMMAND = 'eclipse_command'
 KEY_NOSPLASH = 'no_splash'
 KEY_VERBOSE = 'verbose'
 KEY_CONFIG = 'config_file'
+KEY_RESTORE_ENDINGS = 'restore_line_endings'
 
 class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
@@ -19,48 +20,46 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     ''' cache line endings, as we may need to restore them '''
     #line_endings = view.line_endings()
-    #self.__printLineEndings(line_endings)
+    #self.__print_line_endings(line_endings)
 
     ''' do external call to eclipse formatter '''
-    child = Popen(self.__assembleCommand(), stdout=PIPE, stderr=PIPE)
-    print child.communicate()[1]
-
-    #output = check_call(self.__assembleCommand())
+    child = Popen(self.__assemble_command(), stdout=PIPE, stderr=STDOUT)
+    print child.communicate()[0]
 
     ''' reload formatted file '''
     view.run_command('revert')
 
     ''' restore line endings and save if they have changed '''
-    #self.__printLineEndings(line_endings)
-    #if (self.__determineLineEndings() != line_endings):
+    #if self.__get_setting(KEY_RESTORE_ENDINGS) and self.__determine_line_endings() != line_endings:
+    #  self.__print_line_endings(line_endings)
     #  view.set_line_endings(line_endings)
     #  view.run_command('save')
-    #  self.__printLineEndings(line_endings)
+    #  self.__print_line_endings(line_endings)
 
-  def __assembleCommand(self):
+  def __assemble_command(self):
     args = []
 
     platform = sublime.platform()
 
-    args.append(self.__getSetting(KEY_ECLIPSE_COMMAND))
+    args.append(self.__get_setting(KEY_ECLIPSE_COMMAND))
 
-    if self.__getSetting(KEY_NOSPLASH):
+    if self.__get_setting(KEY_NOSPLASH):
       args.append('-nosplash')
 
     args.append('-application')
     args.append('org.eclipse.jdt.core.JavaCodeFormatter')
 
-    if self.__getSetting(KEY_VERBOSE):
+    if self.__get_setting(KEY_VERBOSE):
       args.append('-verbose')
 
     args.append('-config')
-    args.append(self.__getSetting(KEY_CONFIG))
+    args.append(self.__get_setting(KEY_CONFIG))
 
     args.append(self.view.file_name())
 
     return args
 
-  def __getSetting(self, key):
+  def __get_setting(self, key):
     view_settings = self.view.settings()
     if view_settings.has(SETTINGS_NAME):
       project_settings = view_settings.get(SETTINGS_NAME)
@@ -68,10 +67,10 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
         if proj_setting_key == key:
           return project_settings[proj_setting_key]
 
-    plugin_settings = sublime.load_settings(SETTINGS)
+    plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
     return plugin_settings.get(key, None)
 
-  def __determineLineEndings(self):
+  def __determine_line_endings(self):
     lf_count = 0
     cr_count = 0
     crlf_count = 0
@@ -95,8 +94,8 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     else:
       return 'Mac OS 9'
 
-  def __printLineEndings(self, originalLineEndings=None):
-    if originalLineEndings is not None:
-      print 'original line endings: %s' % originalLineEndings
-      print 'view line endings: %s' % self.view.line_endings()
-      print 'file line endings: %s' % self.__determineLineEndings()
+  def __print_line_endings(self, original_line_endings=None):
+    if original_line_endings is not None:
+      print 'original line endings: %s' % original_line_endings
+    print 'view line endings: %s' % self.view.line_endings()
+    print 'file line endings: %s' % self.__determine_line_endings()
