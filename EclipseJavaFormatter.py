@@ -9,9 +9,19 @@ KEY_VERBOSE = 'verbose'
 KEY_CONFIG = 'config_file'
 KEY_RESTORE_ENDINGS = 'restore_line_endings'
 
+PLATFORM_WIN = 'Windows'
+PLATFORM_UNIX = 'Unix'
+PLATFORM_OS9 = 'Mac OS 9'
+ENDING_CRLF = '/r/n'
+ENDING_LF = '/n'
+ENDING_CR = '/r'
+ENDINGS = {PLATFORM_WIN: ENDING_CRLF,
+           PLATFORM_UNIX: ENDING_LF,
+           PLATFORM_OS9: ENDING_CR}
+
 class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
-  def run_(self, args):
+  def run(self, edit):
     view = self.view
 
     ''' save if there are unsaved changes '''
@@ -19,22 +29,20 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
       view.run_command('save')
 
     ''' cache line endings, as we may need to restore them '''
-    #line_endings = view.line_endings()
-    #self.__print_line_endings(line_endings)
+    line_endings = view.line_endings()
 
     ''' do external call to eclipse formatter '''
     child = Popen(self.__assemble_command(), stdout=PIPE, stderr=STDOUT)
     print child.communicate()[0]
 
-    ''' reload formatted file '''
-    view.run_command('revert')
-
-    ''' restore line endings and save if they have changed '''
-    #if self.__get_setting(KEY_RESTORE_ENDINGS) and self.__determine_line_endings() != line_endings:
-    #  self.__print_line_endings(line_endings)
-    #  view.set_line_endings(line_endings)
-    #  view.run_command('save')
-    #  self.__print_line_endings(line_endings)
+    if self.__get_setting(KEY_RESTORE_ENDINGS):
+      ''' restore line endings and save '''
+      #self.__restore_line_endings(line_endings)
+      #view.run_command('save')
+      pass
+    else:
+      ''' reload formatted file as-is '''
+      view.run_command('revert')
 
   def __assemble_command(self):
     args = []
@@ -70,32 +78,16 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
     return plugin_settings.get(key, None)
 
-  def __determine_line_endings(self):
-    lf_count = 0
-    cr_count = 0
-    crlf_count = 0
+  def __restore_line_endings(self, original_line_endings):
+    v = self.view
+    ed = v.begin_edit()
+    v.erase(ed, sublime.Region(0, v.size()))
 
-    f = open(self.view.file_name())
+    '''cursor = 0
+    f = open(v.file_name())
     for line in f.readlines():
-      c = line[-1:]
-      if c == '\n':
-        if len(line) > 1 and line[-2:-1] == '\r':
-          crlf_count+=1
-        else:
-          lf_count+=1
-      elif c == '\r':
-        cr_count+=1
-    f.close()
+      cursor+=v.insert(ed, cursor, line.rstrip())
+      #cursor+=v.insert(ed, cursor, ENDINGS[original_line_endings])
+    f.close()'''
 
-    if lf_count > cr_count and lf_count > crlf_count:
-      return 'Unix'
-    elif crlf_count > lf_count and crlf_count > cr_count:
-      return 'Windows'
-    else:
-      return 'Mac OS 9'
-
-  def __print_line_endings(self, original_line_endings=None):
-    if original_line_endings is not None:
-      print 'original line endings: %s' % original_line_endings
-    print 'view line endings: %s' % self.view.line_endings()
-    print 'file line endings: %s' % self.__determine_line_endings()
+    v.end_edit(ed)
