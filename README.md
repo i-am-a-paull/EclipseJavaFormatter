@@ -28,3 +28,8 @@ Some other important settings deal with line endings.  Since this is something t
 
 "convert_to_os9_command": "/Users/phildopus/Applications/bin/flip -m"
 ```
+
+##Notes
+If you use gradle and [SublimeJava](https://github.com/quarnster/SublimeJava)
+for your java development, you may be interested in my 
+[gradle plugin](https://github.com/phildopus/gradle-sublimetext-plugin).
