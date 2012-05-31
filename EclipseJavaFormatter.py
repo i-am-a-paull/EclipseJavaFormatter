@@ -8,20 +8,20 @@ KEY_NOSPLASH = 'no_splash'
 KEY_VERBOSE = 'verbose'
 KEY_CONFIG = 'config_file'
 KEY_RESTORE_ENDINGS = 'restore_line_endings'
+KEY_CONVERT_TO_DOS_COMMAND = 'convert_to_dos_command'
+KEY_CONVERT_TO_UNIX_COMMAND = 'convert_to_unix_command'
+KEY_CONVERT_TO_OS9_COMMAND = 'convert_to_os9_command'
 
 PLATFORM_WIN = 'Windows'
 PLATFORM_UNIX = 'Unix'
 PLATFORM_OS9 = 'Mac OS 9'
-ENDING_CRLF = '/r/n'
-ENDING_LF = '/n'
-ENDING_CR = '/r'
-ENDINGS = {PLATFORM_WIN: ENDING_CRLF,
-           PLATFORM_UNIX: ENDING_LF,
-           PLATFORM_OS9: ENDING_CR}
+CONVERT_COMMANDS = {PLATFORM_WIN: KEY_CONVERT_TO_DOS_COMMAND,
+                    PLATFORM_UNIX: KEY_CONVERT_TO_UNIX_COMMAND,
+                    PLATFORM_OS9: KEY_CONVERT_TO_OS9_COMMAND}
 
 class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
-  def run(self, edit):
+  def run_(self, args):
     view = self.view
 
     ''' save if there are unsaved changes '''
@@ -32,19 +32,19 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     line_endings = view.line_endings()
 
     ''' do external call to eclipse formatter '''
-    child = Popen(self.__assemble_command(), stdout=PIPE, stderr=STDOUT)
+    self.__run_external_command(self.__assemble_eclipse_command())
+
+    ''' restore line endings '''
+    if self.__get_setting(KEY_RESTORE_ENDINGS):
+      self.__run_external_command(self.__assemble_convert_command(line_endings))
+    
+    view.run_command('revert')
+
+  def __run_external_command(self, args):
+    child = Popen(args, stdout=PIPE, stderr=STDOUT)
     print child.communicate()[0]
 
-    if self.__get_setting(KEY_RESTORE_ENDINGS):
-      ''' restore line endings and save '''
-      #self.__restore_line_endings(line_endings)
-      #view.run_command('save')
-      pass
-    else:
-      ''' reload formatted file as-is '''
-      view.run_command('revert')
-
-  def __assemble_command(self):
+  def __assemble_eclipse_command(self):
     args = []
 
     platform = sublime.platform()
@@ -67,6 +67,11 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     return args
 
+  def __assemble_convert_command(self, original_line_endings):
+    args = self.__get_setting(CONVERT_COMMANDS[original_line_endings]).split(' ')
+    args.append(self.view.file_name())
+    return args
+
   def __get_setting(self, key):
     view_settings = self.view.settings()
     if view_settings.has(SETTINGS_NAME):
@@ -78,16 +83,4 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
     return plugin_settings.get(key, None)
 
-  def __restore_line_endings(self, original_line_endings):
-    v = self.view
-    ed = v.begin_edit()
-    v.erase(ed, sublime.Region(0, v.size()))
-
-    '''cursor = 0
-    f = open(v.file_name())
-    for line in f.readlines():
-      cursor+=v.insert(ed, cursor, line.rstrip())
-      #cursor+=v.insert(ed, cursor, ENDINGS[original_line_endings])
-    f.close()'''
-
-    v.end_edit(ed)
+    

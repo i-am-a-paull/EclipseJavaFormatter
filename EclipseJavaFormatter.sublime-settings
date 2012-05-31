@@ -21,8 +21,18 @@
   // Restores original line endings after format, 
   // just in case your code has Windows line endings,
   // but you are working on a Mac, or some similar
-  // situation.  (Doesn't work right now.  You'll
-  // have to do this manually until this one gets
-  // figured out...)
-  "restore_line_endings": true
+  // situation.  This runs a set of external commands,
+  // configured with convert_to_<platform>_command for 
+  // each platform, which do the dirty work.  flip is
+  // a good one, and the one that I use in my own
+  // configuration:
+  // https://ccrma.stanford.edu/~craig/utility/flip/
+  // Remember to escape any spaces in the command path.
+  "restore_line_endings": false,
+
+  "convert_to_dos_command": "/Users/phildopus/Applications/bin/flip -d",
+
+  "convert_to_unix_command": "/Users/phildopus/Applications/bin/flip -u",
+
+  "convert_to_os9_command": "/Users/phildopus/Applications/bin/flip -m"
 }
