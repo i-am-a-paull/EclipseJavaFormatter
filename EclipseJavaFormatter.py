@@ -1,13 +1,21 @@
-import sublime, sublime_plugin
+import sublime, sublime_plugin, re
+from operator import attrgetter
 from subprocess import Popen, PIPE
 
 SETTINGS_NAME = 'EclipseJavaFormatter'
 SETTINGS_FILE_NAME = '%s.sublime-settings' % SETTINGS_NAME
+
 KEY_ECLIPSE_COMMAND = 'eclipse_command'
 KEY_NOSPLASH = 'no_splash'
 KEY_VERBOSE = 'verbose'
 KEY_CONFIG = 'config_file'
 KEY_RESTORE_ENDINGS = 'restore_line_endings'
+
+KEY_SORT_IMPORTS = 'sort_imports'
+KEY_SORT_ORDER = 'sort_imports_order'
+
+IMP_RE = 'import( static)? ([\w\.]+)\.([\w]+|\*);'
+IMP_PROG = re.compile(IMP_RE)
 
 class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
@@ -24,6 +32,15 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
       edit = self.view.begin_edit()
 
       self.__refresh_view(edit)
+
+      if self.__get_setting(KEY_SORT_IMPORTS):
+        import_regions = self.view.find_all(IMP_RE)
+        mega_region = import_regions[0].cover(import_regions[-1])
+
+        imports = [JavaImport(self.view.substr(region)) for region in import_regions]
+        sorter = ImportSorter(imports, self.__get_setting(KEY_SORT_ORDER))
+
+        self.view.replace(edit, mega_region, str(sorter))
 
       ''' restore line endings '''
       if self.__get_setting(KEY_RESTORE_ENDINGS):
@@ -83,4 +100,64 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
     return plugin_settings.get(key, None)
 
+class JavaImport(object):
+
+  def __init__(self, imp_str):
+    result = IMP_PROG.match(imp_str)
+
+    self.is_static = True if result.group(1) else False
+    self.package = result.group(2)
+    self.java_type = result.group(3)
+    self.imp_str = imp_str
+    
+  def __repr__(self):
+    return self.imp_str
+
+class ImportSorter(object):
+
+  def __init__(self, imports, sort_order):
+    self.imports = self.sort_imports(imports, sort_order)
+
+  def sort_imports(self, imports, sort_order):
+    '''
+    sort alphabetically and then by package depth,
+    reversed so that packages with similar substrings
+    (java and javax) don't get confused
+
+    '''
+    specific_first = sorted(sort_order, reverse=True)
+    pkg_depth = lambda package: len(package.split('.'))
+    sorted(specific_first, key=pkg_depth, reverse=True)
+
+    '''
+    create dict for grouping packages and populate
+
+    '''
+    groups_by_package = dict(zip((sort_order + ['other']), 
+                                  [[] for package in sort_order] + [[]]))
+    used = []
+    for imp in imports:
+      for package in specific_first:
+        if imp.package.startswith(package):
+          groups_by_package[package].append(imp)
+          used.append(imp)
+          break
+
+    ''' other gets the dregs '''
+    groups_by_package['other'] = [imp for imp in imports if imp not in used]
+
+    sorted_groups = []
+    for key in (sort_order + ['other']):
+      if len(groups_by_package[key]) > 0:
+        pkg_group = sorted(groups_by_package[key], key=attrgetter('java_type'))
+        sorted(pkg_group, key=attrgetter('package'))
+        sorted_groups.append(pkg_group)
+
+    return sorted_groups
+
+  def __repr_group(self, group):
+    return '\n'.join([str(imp) for imp in group])
+
+  def __repr__(self):
+    return '\n\n'.join([self.__repr_group(group) for group in self.imports])
     

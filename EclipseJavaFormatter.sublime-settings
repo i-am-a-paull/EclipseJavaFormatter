@@ -18,6 +18,16 @@
   // http://www.peterfriese.de/formatting-your-code-using-the-eclipse-code-formatter/
   "config_file": "/Users/phildopus/Development/config/eclipse/org.eclipse.jdt.core.prefs",
 
+  // If true, the plugin (not the eclipse formatter) will
+  // attempt to approximate eclipse's import sorting. It
+  // will not, however, attempt to do any kind of auto-
+  // importing or smart starring.
+  "sort_imports": true,
+
+  // Setting this gives sort priorty to the named packages
+  // and will group them accordingly.
+  "sort_imports_order": ["java", "javax", "org", "com"],
+
   // Restores original line endings after format, 
   // just in case your code has Windows line endings,
   // but you are working on a Mac, or some similar
