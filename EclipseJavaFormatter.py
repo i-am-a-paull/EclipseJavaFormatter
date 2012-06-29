@@ -1,5 +1,5 @@
 import sublime, sublime_plugin
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE
 
 SETTINGS_NAME = 'EclipseJavaFormatter'
 SETTINGS_FILE_NAME = '%s.sublime-settings' % SETTINGS_NAME
