@@ -19,7 +19,7 @@ For information on how to find and/or generate your `config_file`, look here:
 If you need to preserve your line endings, add the following:
 
 ```JavaScript
-"restore_line_endings": true,
+"restore_line_endings": true
 ```
 
 ##Notes
