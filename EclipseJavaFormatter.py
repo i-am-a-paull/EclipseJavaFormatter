@@ -127,7 +127,7 @@ class ImportSorter(object):
     '''
     specific_first = sorted(sort_order, reverse=True)
     pkg_depth = lambda package: len(package.split('.'))
-    sorted(specific_first, key=pkg_depth, reverse=True)
+    specific_first = sorted(specific_first, key=pkg_depth, reverse=True)
 
     '''
     create dict for grouping packages and populate
@@ -150,7 +150,7 @@ class ImportSorter(object):
     for key in (sort_order + ['other']):
       if len(groups_by_package[key]) > 0:
         pkg_group = sorted(groups_by_package[key], key=attrgetter('java_type'))
-        sorted(pkg_group, key=attrgetter('package'))
+        pkg_group = sorted(pkg_group, key=attrgetter('package'))
         sorted_groups.append(pkg_group)
 
     return sorted_groups
