@@ -22,7 +22,7 @@
   // attempt to approximate eclipse's import sorting. It
   // will not, however, attempt to do any kind of auto-
   // importing or smart starring.
-  "sort_imports": true,
+  "sort_imports": false,
 
   // Setting this gives sort priorty to the named packages
   // and will group them accordingly.
