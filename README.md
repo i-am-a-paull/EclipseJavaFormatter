@@ -21,7 +21,7 @@ This feature is not an external call to Eclipse, and it does not attempt to do
 any sort of autoimporting.
 
 ```JavaScript
-"sort_imports": false
+"sort_imports": true
 ```
 
 It will, however, honor any overrides that you wish to include, much like the
