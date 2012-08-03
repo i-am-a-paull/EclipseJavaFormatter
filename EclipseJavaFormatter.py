@@ -17,6 +17,9 @@ KEY_SORT_ORDER = 'sort_imports_order'
 IMP_RE = 'import( static)? ([\w\.]+)\.([\w]+|\*);'
 IMP_PROG = re.compile(IMP_RE)
 
+LANG_RE = "^((source|text\.)[\w+\-\.#]+)"
+LANG_PROG = re.compile(LANG_RE)
+
 class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
   def run_(self, args):
@@ -99,6 +102,20 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
     return plugin_settings.get(key, None)
+
+  def is_visible(self):
+    return self.__get_language() == "source.java"
+
+  def __get_language(self):
+    view = self.view
+    if view == None:
+        view = sublime.active_window().active_view()
+    cursor = view.sel()[0].a
+    scope = view.scope_name(cursor).strip()
+    language = LANG_PROG.search(scope)
+    if language == None:
+        return None
+    return language.group(0)
 
 class JavaImport(object):
 
