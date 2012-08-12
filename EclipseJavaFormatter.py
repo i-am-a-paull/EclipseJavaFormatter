@@ -1,4 +1,4 @@
-import sublime, sublime_plugin, re
+import sublime, sublime_plugin, re, os
 from operator import attrgetter
 from subprocess import Popen, PIPE
 
@@ -69,7 +69,7 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     platform = sublime.platform()
 
-    args.append(self.__get_setting(KEY_ECLIPSE_COMMAND))
+    args.append(os.path.expanduser(self.__get_setting(KEY_ECLIPSE_COMMAND)))
 
     if self.__get_setting(KEY_NOSPLASH):
       args.append('-nosplash')
@@ -81,7 +81,7 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
       args.append('-verbose')
 
     args.append('-config')
-    args.append(self.__get_setting(KEY_CONFIG))
+    args.append(os.path.expanduser(self.__get_setting(KEY_CONFIG)))
 
     args.append(self.view.file_name())
 
