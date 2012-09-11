@@ -77,13 +77,17 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     args.append('-application')
     args.append('org.eclipse.jdt.core.JavaCodeFormatter')
 
-    if self.__get_setting(KEY_VERBOSE):
+    is_verbose = self.__get_setting(KEY_VERBOSE)
+    if is_verbose:
       args.append('-verbose')
 
     args.append('-config')
     args.append(os.path.expanduser(self.__get_setting(KEY_CONFIG)))
 
     args.append(self.view.file_name())
+
+    if is_verbose:
+      print "running command: %s" % ' '.join(args)
 
     return args
 
