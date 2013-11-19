@@ -20,9 +20,58 @@ IMP_PROG = re.compile(IMP_RE)
 LANG_RE = "^((source|text\.)[\w+\-\.#]+)"
 LANG_PROG = re.compile(LANG_RE)
 
-class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
+def _get_setting(view, key):
+  view_settings = view.settings()
+  if view_settings.has(SETTINGS_NAME):
+    project_settings = view_settings.get(SETTINGS_NAME)
+    for proj_setting_key in project_settings:
+      if proj_setting_key == key:
+        return project_settings[proj_setting_key]
 
-  def run_(self, args):
+  plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
+  return plugin_settings.get(key, None)
+
+"""
+This is a wrapper command so that the final save can be run
+"""
+class EclipseFormatJavaCommand(sublime_plugin.ApplicationCommand):
+
+  def run(self):
+    view = sublime.active_window().active_view()
+
+    ''' save if there are unsaved changes '''
+    if view.is_dirty():
+      view.run_command("save")
+
+    ''' cache line endings, as we may need to restore them '''
+    line_endings = view.line_endings()
+
+    view.run_command('do_eclipse_format_java')
+    view.run_command('do_sort_imports')
+
+    ''' restore line endings '''
+    if _get_setting(view, KEY_RESTORE_ENDINGS):
+      view.set_line_endings(line_endings)
+
+    view.run_command('save')
+
+  def is_visible(self):
+    return self.__get_language() == "source.java"
+
+  def __get_language(self):
+    view = sublime.active_window().active_view()
+    
+    cursor = view.sel()[0].a
+    scope = view.scope_name(cursor).strip()
+    language = LANG_PROG.search(scope)
+    if language == None:
+        return None
+    return language.group(0)
+    
+
+class DoEclipseFormatJavaCommand(sublime_plugin.TextCommand):
+
+  def run(self, edit):
     ''' save if there are unsaved changes '''
     if self.view.is_dirty():
       self.view.run_command('save')
@@ -32,31 +81,13 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     ''' do external call to eclipse formatter '''
     if self.__run_external_command(self.__assemble_eclipse_command()):
-      edit = self.view.begin_edit()
-
       self.__refresh_view(edit)
-
-      if self.__get_setting(KEY_SORT_IMPORTS):
-        import_regions = self.view.find_all(IMP_RE)
-        mega_region = import_regions[0].cover(import_regions[-1])
-
-        imports = [JavaImport(self.view.substr(region)) for region in import_regions]
-        sorter = ImportSorter(imports, self.__get_setting(KEY_SORT_ORDER))
-
-        self.view.replace(edit, mega_region, str(sorter))
-
-      ''' restore line endings '''
-      if self.__get_setting(KEY_RESTORE_ENDINGS):
-        self.view.set_line_endings(line_endings)
-
-      self.view.end_edit(edit)
-
-      self.view.run_command('save')
 
   def __run_external_command(self, args):
     child = Popen(args, stdout=PIPE, stderr=PIPE)
     output, error = child.communicate()
-    print output
+
+    print(output)
 
     if error:
       sublime.error_message(error)
@@ -69,25 +100,25 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
 
     platform = sublime.platform()
 
-    args.append(os.path.expanduser(self.__get_setting(KEY_ECLIPSE_COMMAND)))
+    args.append(os.path.expanduser(_get_setting(self.view, KEY_ECLIPSE_COMMAND)))
 
-    if self.__get_setting(KEY_NOSPLASH):
+    if _get_setting(self.view, KEY_NOSPLASH):
       args.append('-nosplash')
 
     args.append('-application')
     args.append('org.eclipse.jdt.core.JavaCodeFormatter')
 
-    is_verbose = self.__get_setting(KEY_VERBOSE)
+    is_verbose = _get_setting(self.view, KEY_VERBOSE)
     if is_verbose:
       args.append('-verbose')
 
     args.append('-config')
-    args.append(os.path.expanduser(self.__get_setting(KEY_CONFIG)))
+    args.append(os.path.expanduser(_get_setting(self.view, KEY_CONFIG)))
 
     args.append(self.view.file_name())
 
     if is_verbose:
-      print "running command: %s" % ' '.join(args)
+      print("running command: %s" % ' '.join(args))
 
     return args
 
@@ -96,30 +127,19 @@ class EclipseFormatJavaCommand(sublime_plugin.TextCommand):
     f = open(self.view.file_name())
     self.view.replace(edit, document, f.read())
 
-  def __get_setting(self, key):
-    view_settings = self.view.settings()
-    if view_settings.has(SETTINGS_NAME):
-      project_settings = view_settings.get(SETTINGS_NAME)
-      for proj_setting_key in project_settings:
-        if proj_setting_key == key:
-          return project_settings[proj_setting_key]
 
-    plugin_settings = sublime.load_settings(SETTINGS_FILE_NAME)
-    return plugin_settings.get(key, None)
+class DoSortImportsCommand(sublime_plugin.TextCommand):
 
-  def is_visible(self):
-    return self.__get_language() == "source.java"
+  def run(self, edit):
+    if _get_setting(self.view, KEY_SORT_IMPORTS):
+      import_regions = self.view.find_all(IMP_RE)
+      mega_region = import_regions[0].cover(import_regions[-1])
 
-  def __get_language(self):
-    view = self.view
-    if view == None:
-        view = sublime.active_window().active_view()
-    cursor = view.sel()[0].a
-    scope = view.scope_name(cursor).strip()
-    language = LANG_PROG.search(scope)
-    if language == None:
-        return None
-    return language.group(0)
+      imports = [JavaImport(self.view.substr(region)) for region in import_regions]
+      sorter = ImportSorter(imports, _get_setting(self.view, KEY_SORT_ORDER))
+
+      self.view.replace(edit, mega_region, str(sorter))
+
 
 class JavaImport(object):
 
