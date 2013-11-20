@@ -34,10 +34,10 @@ def _get_setting(view, key):
 """
 This is a wrapper command so that the final save can be run
 """
-class EclipseFormatJavaCommand(sublime_plugin.ApplicationCommand):
+class EclipseFormatJavaCommand(sublime_plugin.WindowCommand):
 
   def run(self):
-    view = sublime.active_window().active_view()
+    view = self.window.active_view()
 
     ''' save if there are unsaved changes '''
     if view.is_dirty():
@@ -59,7 +59,7 @@ class EclipseFormatJavaCommand(sublime_plugin.ApplicationCommand):
     return self.__get_language() == "source.java"
 
   def __get_language(self):
-    view = sublime.active_window().active_view()
+    view = self.window.active_view()
     
     cursor = view.sel()[0].a
     scope = view.scope_name(cursor).strip()
